@@ -11,6 +11,7 @@ const rootRoutes = require("./routes/root");
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const courseRoutes = require("./routes/courseRoutes");
+const tutorRoutes = require("./routes/tutorRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const path = require("path");
 const { appendFile } = require("fs");
@@ -22,10 +23,11 @@ app.use(express.static(path.join(__dirname, "views")));
 const NOT_FOUND_FilePath = path.join(__dirname, "views/404.html");
 app.use("/", rootRoutes);
 
-app.use("/auth", authRoutes);
-app.use("/users", userRoutes);
-app.use("/courses", courseRoutes);
-app.use("/categories", categoryRoutes);
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/courses", courseRoutes);
+app.use("/api/v1/categories", categoryRoutes);
+app.use("/api/v1/tutors", tutorRoutes);
 
 app.all("*", (req, res) => {
   res.sendFile(NOT_FOUND_FilePath);

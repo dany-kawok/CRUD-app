@@ -3,12 +3,24 @@ const router = express.Router();
 
 const usersController = require("../controllers/usersController");
 const verifyJWT = require("../middleware/verifyJWT");
-const userCoursesController = require("../controllers/userCoursesController");
-
+const allowedTo = require("../middleware/allowedTo");
+// const userCoursesController = require("../controllers/userCoursesController");
+const userRoles = require("../utils/userRoles");
 router.use(verifyJWT);
-router.route("/").get(usersController.getAllUsers);
+router.route("/").get(verifyJWT, usersController.getAllUsers);
+
+router
+  .route("/:userId")
+  .delete(allowedTo(userRoles.ADMIN), usersController.deleteUser)
+  .patch(
+    allowedTo(userRoles.ADMIN, userRoles.MODERATOR),
+    usersController.modifyUser
+  );
 router
   .route("/:userId/courses")
-  .get(userCoursesController.getUserCourses)
-  .post(userCoursesController.addCourseToUser);
+  .get(usersController.getUserCourses)
+  .post(
+    allowedTo(userRoles.ADMIN, userRoles.MODERATOR),
+    usersController.addCourseToUser
+  );
 module.exports = router;
