@@ -5,7 +5,9 @@ const Tutor = require("../models/Tutor");
 // Get all courses
 const getAllCourses = async (req, res) => {
   try {
-    const courses = await Course.find().populate("users", "-password").lean();
+    const courses = await Course.find()
+      // .populate("users", "-password")
+      .lean();
     if (!courses.length) {
       return res.json({
         status: "error",
@@ -69,7 +71,7 @@ const createCourse = async (req, res) => {
 const getCourseById = async (req, res) => {
   try {
     const course = await Course.findById(req.params.courseId)
-      .populate("users", "-password")
+      // .populate("users", "-password")
       .lean();
     if (!course) {
       return res
@@ -120,7 +122,7 @@ const updateCourse = async (req, res) => {
 // Delete a course
 const deleteCourse = async (req, res) => {
   try {
-    const course = await Course.findByIdAndDelete(req.params.courseId);
+    const course = await Course.findById(req.params.courseId);
     if (!course) {
       return res
         .status(404)
@@ -133,6 +135,15 @@ const deleteCourse = async (req, res) => {
       { $pull: { courses: course._id } }
     );
 
+    // Remove course reference from tutors
+    await Tutor.updateMany(
+      { _id: { $in: course.tutors } },
+      { $pull: { courses: course._id } }
+    );
+
+    // Delete the course
+    await Course.findByIdAndDelete(req.params.courseId);
+
     res.json({ status: "success", data: { message: "Course deleted" } });
   } catch (err) {
     return res
@@ -140,6 +151,7 @@ const deleteCourse = async (req, res) => {
       .json({ status: "error", data: { message: err.message } });
   }
 };
+
 // Get tutors of a specific course
 const getCourseTutors = async (req, res) => {
   try {
@@ -259,6 +271,53 @@ const addTutorToCourse = async (req, res) => {
       .json({ status: "error", data: { message: err.message } });
   }
 };
+// Search courses
+// Search courses
+const searchCourses = async (req, res) => {
+  const searchText = req.params.searchText;
+
+  try {
+    const courses = await Course.find({
+      $or: [
+        { title: { $regex: searchText, $options: "i" } }, // Case-insensitive search for title
+        { description: { $regex: searchText, $options: "i" } }, // Case-insensitive search for description
+      ],
+    })
+      .populate("category", "name") // Populate category title
+      .populate({
+        path: "tutors",
+        select: "first_name last_name", // Select first_name and last_name
+      })
+      .lean();
+
+    // If no courses found, return error message
+    if (!courses.length) {
+      return res.json({
+        status: "error",
+        data: { message: "No courses found" },
+      });
+    }
+
+    // Map over courses to format tutors
+    const formattedCourses = courses.map((course) => {
+      // If no tutors found, set tutors to an empty array
+      const tutors = course.tutors.length
+        ? course.tutors.map((tutor) => `${tutor.first_name} ${tutor.last_name}`)
+        : [];
+
+      return {
+        ...course,
+        tutors: tutors,
+      };
+    });
+
+    return res.json({ status: "success", data: formattedCourses });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ status: "error", data: { message: err.message } });
+  }
+};
 
 module.exports = {
   getAllCourses,
@@ -270,4 +329,5 @@ module.exports = {
   getCourseUsers,
   addUserToCourse,
   addTutorToCourse,
+  searchCourses, // Add searchCourses to module exports
 };

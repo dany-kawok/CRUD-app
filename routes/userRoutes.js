@@ -23,4 +23,8 @@ router
     allowedTo(userRoles.ADMIN, userRoles.MODERATOR),
     usersController.addCourseToUser
   );
+router
+  .route("/deleteByRole")
+  .post(allowedTo(userRoles.ADMIN), usersController.deleteUsersByRole); // Add this line for the new route
+
 module.exports = router;

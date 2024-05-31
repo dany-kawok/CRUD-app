@@ -17,7 +17,7 @@ router
 router
   .route("/:tutorId")
   .get(tutorsController.getTutorById)
-  .patch(
+  .put(
     allowedTo(userRoles.ADMIN, userRoles.MODERATOR),
     tutorsController.updateTutor
   )

@@ -48,17 +48,20 @@ const getTutorById = async (req, res) => {
 // Update a tutor
 const updateTutor = async (req, res) => {
   try {
-    const { first_name, last_name, email } = req.body;
-    const tutor = await Tutor.findByIdAndUpdate(
-      req.params.id,
-      { first_name, last_name, email },
-      { new: true }
-    ).lean();
+    const { tutorId } = req.params;
+    const { first_name, last_name, email, courses } = req.body;
+    
+    const updateData = {};
+    if (first_name !== undefined) updateData.first_name = first_name;
+    if (last_name !== undefined) updateData.last_name = last_name;
+    if (email !== undefined) updateData.email = email;
+    if (courses !== undefined) updateData.courses = courses;
+
+    const tutor = await Tutor.findByIdAndUpdate(tutorId, updateData, { new: true }).lean();
     if (!tutor) {
-      return res
-        .status(404)
-        .json({ status: "error", message: "Tutor not found" });
+      return res.status(404).json({ status: "error", message: "Tutor not found" });
     }
+
     return res.json({ status: "success", data: tutor });
   } catch (err) {
     return res.status(500).json({ status: "error", message: err.message });

@@ -7,21 +7,28 @@ const verifyJWT = require("../middleware/verifyJWT");
 const allowedTo = require("../middleware/allowedTo");
 const userRoles = require("../utils/userRoles");
 
-router.use(verifyJWT);
-
 router
   .route("/")
   .get(categoriesController.getAllCategories)
-  .post(allowedTo(userRoles.ADMIN), categoriesController.createCategory);
+  .post(
+    verifyJWT,
+    allowedTo(userRoles.ADMIN),
+    categoriesController.createCategory
+  );
 
 router
   .route("/:categoryId")
   .get(categoriesController.getCategoryById)
   .put(
+    verifyJWT,
     allowedTo(userRoles.ADMIN, userRoles.MODERATOR),
     categoriesController.updateCategory
   )
-  .delete(allowedTo(userRoles.ADMIN), categoriesController.deleteCategory);
+  .delete(
+    verifyJWT,
+    allowedTo(userRoles.ADMIN),
+    categoriesController.deleteCategory
+  );
 
 router
   .route("/:categoryId/courses")

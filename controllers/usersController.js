@@ -116,10 +116,35 @@ const addCourseToUser = async (req, res) => {
       .json({ status: "error", data: { message: err.message } });
   }
 };
+const deleteUsersByRole = async (req, res) => {
+  try {
+    const { roles } = req.body; // Expecting roles as an array or a single role string
+
+    // Ensure roles is an array
+    const roleArray = Array.isArray(roles) ? roles : [roles];
+
+    const result = await User.deleteMany({ role: { $in: roleArray } });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No users found with the specified role(s)",
+      });
+    }
+
+    return res.json({
+      status: "success",
+      message: `${result.deletedCount} user(s) deleted successfully`,
+    });
+  } catch (err) {
+    return res.status(500).json({ status: "error", message: err.message });
+  }
+};
 module.exports = {
   getAllUsers,
   deleteUser,
   modifyUser,
   getUserCourses,
   addCourseToUser,
+  deleteUsersByRole,
 };
