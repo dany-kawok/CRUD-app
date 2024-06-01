@@ -140,6 +140,23 @@ const deleteUsersByRole = async (req, res) => {
     return res.status(500).json({ status: "error", message: err.message });
   }
 };
+// Get user by ID
+const getUserById = async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const user = await User.findById(userId).select("-password").lean();
+    if (!user) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "User not found" });
+    }
+    return res.json({ status: "success", data: user });
+  } catch (err) {
+    return res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
 module.exports = {
   getAllUsers,
   deleteUser,
@@ -147,4 +164,5 @@ module.exports = {
   getUserCourses,
   addCourseToUser,
   deleteUsersByRole,
+  getUserById, // Add the getUserById function to exports
 };

@@ -11,6 +11,7 @@ router.route("/").get(verifyJWT, usersController.getAllUsers);
 
 router
   .route("/:userId")
+  .get(usersController.getUserById)
   .delete(allowedTo(userRoles.ADMIN), usersController.deleteUser)
   .patch(
     allowedTo(userRoles.ADMIN, userRoles.MODERATOR),

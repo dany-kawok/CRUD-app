@@ -19,7 +19,8 @@ router
   .route("/:courseId")
   .get(coursesController.getCourseById)
   .patch(
-    allowedTo(verifyJWT, userRoles.ADMIN, userRoles.MODERATOR),
+    verifyJWT,
+    allowedTo(userRoles.ADMIN, userRoles.MODERATOR),
     coursesController.updateCourse
   ) // Using PATCH for partial updates
   .delete(

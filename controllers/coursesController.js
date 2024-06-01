@@ -5,9 +5,7 @@ const Tutor = require("../models/Tutor");
 // Get all courses
 const getAllCourses = async (req, res) => {
   try {
-    const courses = await Course.find()
-      // .populate("users", "-password")
-      .lean();
+    const courses = await Course.find().lean();
     if (!courses.length) {
       return res.json({
         status: "error",
@@ -31,10 +29,11 @@ const createCourse = async (req, res) => {
     tutorIds = [],
     category,
     image,
+    price,
+    rating,
   } = req.body;
 
   try {
-    // Ensure no duplicate users or tutors are added to the course
     const uniqueUserIds = [...new Set(userIds)];
     const uniqueTutorIds = [...new Set(tutorIds)];
 
@@ -45,17 +44,17 @@ const createCourse = async (req, res) => {
       tutors: uniqueTutorIds,
       category,
       image,
+      price,
+      rating,
     });
 
     await course.save();
 
-    // Update users to include this course
     await User.updateMany(
       { _id: { $in: uniqueUserIds } },
       { $addToSet: { courses: course._id } }
     );
 
-    // Update tutors to include this course
     await Tutor.updateMany(
       { _id: { $in: uniqueTutorIds } },
       { $addToSet: { courses: course._id } }
@@ -70,9 +69,7 @@ const createCourse = async (req, res) => {
 // Get a course by ID
 const getCourseById = async (req, res) => {
   try {
-    const course = await Course.findById(req.params.courseId)
-      // .populate("users", "-password")
-      .lean();
+    const course = await Course.findById(req.params.courseId).lean();
     if (!course) {
       return res
         .status(404)
@@ -92,7 +89,6 @@ const updateCourse = async (req, res) => {
   const updates = req.body;
 
   try {
-    // Check if the course exists
     const course = await Course.findById(courseId);
     if (!course) {
       return res
@@ -100,15 +96,12 @@ const updateCourse = async (req, res) => {
         .json({ status: "error", message: "Course not found" });
     }
 
-    // Update the fields that are present in the request
     Object.keys(updates).forEach((key) => {
       course[key] = updates[key];
     });
 
-    // Save the updated course
     await course.save();
 
-    // Populate the tutors and respond with the updated course
     const updatedCourse = await Course.findById(courseId)
       .populate("tutors")
       .lean();
@@ -129,19 +122,16 @@ const deleteCourse = async (req, res) => {
         .json({ status: "error", data: { message: "Course not found" } });
     }
 
-    // Remove course reference from users
     await User.updateMany(
       { _id: { $in: course.users } },
       { $pull: { courses: course._id } }
     );
 
-    // Remove course reference from tutors
     await Tutor.updateMany(
       { _id: { $in: course.tutors } },
       { $pull: { courses: course._id } }
     );
 
-    // Delete the course
     await Course.findByIdAndDelete(req.params.courseId);
 
     res.json({ status: "success", data: { message: "Course deleted" } });
@@ -231,6 +221,7 @@ const addUserToCourse = async (req, res) => {
       .json({ status: "error", data: { message: err.message } });
   }
 };
+
 // Add a tutor to a specific course
 const addTutorToCourse = async (req, res) => {
   const courseId = req.params.courseId;
@@ -271,7 +262,7 @@ const addTutorToCourse = async (req, res) => {
       .json({ status: "error", data: { message: err.message } });
   }
 };
-// Search courses
+
 // Search courses
 const searchCourses = async (req, res) => {
   const searchText = req.params.searchText;
@@ -279,18 +270,17 @@ const searchCourses = async (req, res) => {
   try {
     const courses = await Course.find({
       $or: [
-        { title: { $regex: searchText, $options: "i" } }, // Case-insensitive search for title
-        { description: { $regex: searchText, $options: "i" } }, // Case-insensitive search for description
+        { title: { $regex: searchText, $options: "i" } },
+        { description: { $regex: searchText, $options: "i" } },
       ],
     })
-      .populate("category", "name") // Populate category title
+      .populate("category", "name")
       .populate({
         path: "tutors",
-        select: "first_name last_name", // Select first_name and last_name
+        select: "first_name last_name",
       })
       .lean();
 
-    // If no courses found, return error message
     if (!courses.length) {
       return res.json({
         status: "error",
@@ -298,9 +288,7 @@ const searchCourses = async (req, res) => {
       });
     }
 
-    // Map over courses to format tutors
     const formattedCourses = courses.map((course) => {
-      // If no tutors found, set tutors to an empty array
       const tutors = course.tutors.length
         ? course.tutors.map((tutor) => `${tutor.first_name} ${tutor.last_name}`)
         : [];
@@ -329,5 +317,5 @@ module.exports = {
   getCourseUsers,
   addUserToCourse,
   addTutorToCourse,
-  searchCourses, // Add searchCourses to module exports
+  searchCourses,
 };
