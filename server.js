@@ -14,6 +14,8 @@ const courseRoutes = require("./routes/courseRoutes");
 const tutorRoutes = require("./routes/tutorRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const locationRoutes = require("./routes/locationRoutes"); // Import location routes
+const sCartRoutes = require("./routes/sCartRoutes"); // Import shopping cart routes
+
 const path = require("path");
 const { appendFile } = require("fs");
 
@@ -30,6 +32,7 @@ app.use("/api/v1/courses", courseRoutes);
 app.use("/api/v1/categories", categoryRoutes);
 app.use("/api/v1/tutors", tutorRoutes);
 app.use("/api/v1/geolocation", locationRoutes); // Mount location routes
+app.use("/api/v1/scart", sCartRoutes); // Mount shopping cart routes
 
 app.all("*", (req, res) => {
   res.sendFile(NOT_FOUND_FilePath);

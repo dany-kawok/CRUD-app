@@ -1,6 +1,7 @@
 const Course = require("../models/Course");
 const User = require("../models/User");
 const Tutor = require("../models/Tutor");
+const ShoppingCart = require("../models/shoppingCartSchema"); // Import ShoppingCart model
 
 // Get all courses
 const getAllCourses = async (req, res) => {
@@ -133,6 +134,9 @@ const deleteCourse = async (req, res) => {
     );
 
     await Course.findByIdAndDelete(req.params.courseId);
+
+    // Clear cart items for the deleted course
+    await ShoppingCart.deleteMany({ courseId: req.params.courseId });
 
     res.json({ status: "success", data: { message: "Course deleted" } });
   } catch (err) {
