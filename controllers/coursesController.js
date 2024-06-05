@@ -311,6 +311,33 @@ const searchCourses = async (req, res) => {
   }
 };
 
+// Get courses by an array of IDs
+const getCoursesByIds = async (req, res) => {
+  // console.log(req);
+  const { courseIds } = req.body;
+  // console.log("arraaaay", courseIds);
+  try {
+    // Find courses by IDs and populate necessary fields
+    const courses = await Course.find({ _id: { $in: courseIds } })
+      .populate("category", "name")
+      .populate("tutors", "first_name last_name")
+      .lean();
+
+    if (!courses.length) {
+      return res.status(404).json({
+        status: "error",
+        data: { message: "No courses found" },
+      });
+    }
+
+    return res.json({ status: "success", data: courses });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ status: "error", data: { message: err.message } });
+  }
+};
+
 module.exports = {
   getAllCourses,
   createCourse,
@@ -322,4 +349,5 @@ module.exports = {
   addUserToCourse,
   addTutorToCourse,
   searchCourses,
+  getCoursesByIds, // Add the new function here
 };

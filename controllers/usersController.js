@@ -40,7 +40,7 @@ const deleteUser = async (req, res) => {
 // Modify user
 const modifyUser = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user._id;
     const { first_name, last_name, role } = req.body;
     const user = await User.findByIdAndUpdate(
       userId,
@@ -57,10 +57,10 @@ const modifyUser = async (req, res) => {
     return res.status(500).json({ status: "error", message: err.message });
   }
 };
+
 // Get all courses for a specific user
 const getUserCourses = async (req, res) => {
-  const userId = req.params.userId;
-
+  const userId = req.user._id;
   try {
     const user = await User.findById(userId).populate("courses").lean();
     if (!user) {
@@ -77,10 +77,18 @@ const getUserCourses = async (req, res) => {
 };
 
 // Add a course to a specific user
+// Add courses to a specific user
 const addCourseToUser = async (req, res) => {
-  const userId = req.params.userId;
-  const { courseId } = req.body;
-  // console.log(courseId);
+  const userId = req.user._id;
+  const { courseIds } = req.body; // Expect courseIds to be an array
+
+  if (!Array.isArray(courseIds) || courseIds.length === 0) {
+    return res.status(400).json({
+      status: "error",
+      message: "courseIds must be a non-empty array",
+    });
+  }
+
   try {
     const user = await User.findById(userId);
     if (!user) {
@@ -89,33 +97,39 @@ const addCourseToUser = async (req, res) => {
         .json({ status: "error", data: { message: "User not found" } });
     }
 
-    const course = await Course.findById(courseId);
-    console.log(course);
-    if (!course) {
-      return res
-        .status(404)
-        .json({ status: "error", data: { message: "Course not found" } });
+    const courses = await Course.find({ _id: { $in: courseIds } });
+    const validCourseIds = courses.map((course) => course._id.toString());
+    const invalidCourseIds = courseIds.filter(
+      (id) => !validCourseIds.includes(id)
+    );
+
+    // Add only valid courses to the user's courses array if not already present
+    validCourseIds.forEach((courseId) => {
+      if (!user.courses.includes(courseId)) {
+        user.courses.push(courseId);
+      }
+    });
+    await user.save();
+
+    // Add the user to each course's users array
+    for (const course of courses) {
+      if (!course.users.includes(userId)) {
+        course.users.push(userId);
+        await course.save();
+      }
     }
 
-    if (!user.courses.includes(courseId)) {
-      user.courses.push(courseId);
-      await user.save();
-    }
-
-    if (!course.users.includes(userId)) {
-      course.users.push(userId);
-      await course.save();
-    }
-
-    return res
-      .status(201)
-      .json({ status: "success", data: { message: "Course added to user" } });
+    return res.status(201).json({
+      status: "success",
+      data: { message: "Courses added to user", invalidCourseIds },
+    });
   } catch (err) {
     return res
       .status(500)
       .json({ status: "error", data: { message: err.message } });
   }
 };
+
 const deleteUsersByRole = async (req, res) => {
   try {
     const { roles } = req.body; // Expecting roles as an array or a single role string
@@ -140,9 +154,10 @@ const deleteUsersByRole = async (req, res) => {
     return res.status(500).json({ status: "error", message: err.message });
   }
 };
+
 // Get user by ID
 const getUserById = async (req, res) => {
-  const userId = req.params.userId;
+  const userId = req.user._id;
 
   try {
     const user = await User.findById(userId).select("-password").lean();
@@ -157,6 +172,44 @@ const getUserById = async (req, res) => {
   }
 };
 
+// Delete a course from a specific user
+const deleteCourseOfTheUser = async (req, res) => {
+  const userId = req.user._id;
+  console.log(req);
+  const { courseId } = req.params;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "User not found" });
+    }
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Course not found" });
+    }
+
+    // Remove course from user's courses array
+    user.courses = user.courses.filter((id) => id.toString() !== courseId);
+    await user.save();
+
+    // Remove user from course's users array
+    course.users = course.users.filter((id) => id.toString() !== userId);
+    await course.save();
+
+    return res.status(200).json({
+      status: "success",
+      data: { message: "Course removed from user" },
+    });
+  } catch (err) {
+    return res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
 module.exports = {
   getAllUsers,
   deleteUser,
@@ -164,5 +217,6 @@ module.exports = {
   getUserCourses,
   addCourseToUser,
   deleteUsersByRole,
-  getUserById, // Add the getUserById function to exports
+  getUserById,
+  deleteCourseOfTheUser, // Add the new function here
 };

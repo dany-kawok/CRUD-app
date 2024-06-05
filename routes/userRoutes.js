@@ -4,10 +4,13 @@ const router = express.Router();
 const usersController = require("../controllers/usersController");
 const verifyJWT = require("../middleware/verifyJWT");
 const allowedTo = require("../middleware/allowedTo");
-// const userCoursesController = require("../controllers/userCoursesController");
 const userRoles = require("../utils/userRoles");
+
+// Apply JWT verification middleware to all routes
 router.use(verifyJWT);
-router.route("/").get(verifyJWT, usersController.getAllUsers);
+
+// Routes for user operations
+router.route("/").get(usersController.getAllUsers);
 
 router
   .route("/:userId")
@@ -17,15 +20,19 @@ router
     allowedTo(userRoles.ADMIN, userRoles.MODERATOR),
     usersController.modifyUser
   );
+
+// Routes for user courses
 router
-  .route("/:userId/courses")
+  .route("/courses")
   .get(usersController.getUserCourses)
-  .post(
-    allowedTo(userRoles.ADMIN, userRoles.MODERATOR),
-    usersController.addCourseToUser
-  );
+  .post(usersController.addCourseToUser);
+
+router
+  .route("/courses/:courseId") // Updated to include courseId in the URL
+  .delete(usersController.deleteCourseOfTheUser);
+// Route for deleting users by role
 router
   .route("/deleteByRole")
-  .post(allowedTo(userRoles.ADMIN), usersController.deleteUsersByRole); // Add this line for the new route
+  .post(allowedTo(userRoles.ADMIN), usersController.deleteUsersByRole);
 
 module.exports = router;

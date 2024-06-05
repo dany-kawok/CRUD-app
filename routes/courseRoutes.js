@@ -47,4 +47,6 @@ router
   ); // Route for getting tutors of a specific course
 router.route("/search/:searchText").get(coursesController.searchCourses); // search route
 
+router.route("/ids").post(coursesController.getCoursesByIds); // Add the new route here
+
 module.exports = router;
