@@ -210,6 +210,36 @@ const deleteCourseOfTheUser = async (req, res) => {
   }
 };
 
+// Existing functions...
+
+// Delete all courses of the user
+const deleteAllCoursesOfUser = async (req, res) => {
+  const userId = req.user._id;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "User not found" });
+    }
+
+    // Remove user from all courses
+    await Course.updateMany({ users: userId }, { $pull: { users: userId } });
+
+    // Clear the user's courses array
+    user.courses = [];
+    await user.save();
+
+    return res.status(200).json({
+      status: "success",
+      data: { message: "All courses removed from user" },
+    });
+  } catch (err) {
+    return res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
 module.exports = {
   getAllUsers,
   deleteUser,
@@ -218,5 +248,6 @@ module.exports = {
   addCourseToUser,
   deleteUsersByRole,
   getUserById,
-  deleteCourseOfTheUser, // Add the new function here
+  deleteCourseOfTheUser,
+  deleteAllCoursesOfUser, // Add the new function here
 };
