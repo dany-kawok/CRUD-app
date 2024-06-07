@@ -53,6 +53,7 @@ const register = async (req, res) => {
     secure: true, // Should be served over HTTPS, adjust according to your environment
     sameSite: "None", // Cross-site cookie
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+    // maxAge: 20 * 1000, // 7 days in milliseconds
   });
 
   res.status(201).json({
@@ -107,6 +108,7 @@ const login = async (req, res) => {
     secure: true, // Should be served over HTTPS, adjust according to your environment
     sameSite: "None", // Cross-site cookie
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+    // maxAge: 20 * 1000, // 7 days in milliseconds
   });
 
   res.status(200).json({
@@ -122,29 +124,54 @@ const login = async (req, res) => {
 
 const refreshToken = (req, res) => {
   const cookies = req.cookies;
-  if (!cookies?.jwt)
+  if (!cookies?.jwt) {
+    // If refreshToken cookie does not exist, clear accessToken cookie if present
+    if (cookies.accessToken) {
+      res.clearCookie("accessToken", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "None",
+      });
+    }
     return res.status(401).json({ status: "failure", message: "Unauthorized" });
+  }
 
   const refreshToken = cookies.jwt;
   jwt.verify(
     refreshToken,
     process.env.REFRESH_TOKEN_SECRET,
     async (err, decoded) => {
-      if (err)
+      if (err) {
+        if (cookies.accessToken) {
+          res.clearCookie("accessToken", {
+            httpOnly: true,
+            secure: true,
+            sameSite: "None",
+          });
+        }
         return res
           .status(403)
           .json({ status: "failure", message: "Forbidden" });
-
+      }
       const foundUser = await User.findById(decoded.UserInfo.id).exec();
-      if (!foundUser)
+      if (!foundUser) {
+        // If user not found, clear accessToken cookie if present
+        if (cookies.accessToken) {
+          res.clearCookie("accessToken", {
+            httpOnly: true,
+            secure: true,
+            sameSite: "None",
+          });
+        }
         return res
           .status(401)
           .json({ status: "failure", message: "Unauthorized" });
+      }
 
       const accessToken = jwt.sign(
         { UserInfo: { id: foundUser._id } },
         process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "15m" }
+        { expiresIn: "5s" }
       );
 
       res.status(200).json({
